@@ -7,117 +7,76 @@ class FacturaController {
 
     static getAll = async (req: Request, resp: Response) => {
 
-        //Creamos el trycatch, para que el server no se caiga en posible error.
         try {
-            //Creamos metodo de GetAll, Creamos instancia de AppDataSource.
-            const CabFacRepo = AppDataSource.getRepository(Cabecera_Factura)
-            const DetFacRepo = AppDataSource.getRepository(Detalle_Factura)
-            //Siempre vamos a usar un await, await = espere
-            //Dentro del Find, podemos crear una condicion. Por ejemplo : 
-            //find({where: {estado:true}})
-            const ListaCabFacRepo = await CabFacRepo.find();
-            const ListaDetFacRepo = await DetFacRepo.find();
-            //Creamos validacion para ver si hay datos en la tabala
-            if (ListaCabFacRepo.length == 0 && ListaDetFacRepo.length == 0) {
-                return resp.status(404).json({ mensaje: 'No hay Facturas en la base de datos' });
+            const repoFac = AppDataSource.getRepository(Cabecera_Factura);
+            let lista;
+            try {
+                lista = await repoFac.find({where: { Estado:true }, relations: { Fac_detalle: { productos: true } } })
+            } catch (error) {
+                return resp.status(404).json({ mensaje: "No se encontro datos." })
             }
-            //Siempre tiene que devolver un dato, para el cliente.
-            // Y si en un caso si hubiera datos en la base de datos, 
-            //devolvemos la lista de productos
-            return resp.status(200).json({ ListaCabFacRepo, ListaDetFacRepo });
+            return resp.status(200).json(lista);
         } catch (error) {
-            //En posible error, lo que hacemos es devolver el error
-            return resp.status(400).json({ mensaje: error.error });
+            return resp.status(404).json({ mensaje: "Error al cargar los datos" })
         }
     }
+
     static getById = async (req: Request, resp: Response) => {
 
-        const detalle_factura = Cabecera_Factura
-        let Numero;
-        //Ponemos ecepxiones
         try {
+
+            const repoFac = AppDataSource.getRepository(Cabecera_Factura);
+            let Factura, Numero;
             //Extraemos el id, en fomrato Int
             Numero = parseInt(req.params["numero"]);
             if (!Numero) {
                 return resp.status(404).json({ mensaje: 'No se indica el ID' })
             }
-            //Hacemos la instancia del repositorio
-            let FacturaCab, FacturaDet;
-
-            // Podemos utilizar tambien el trycatch, y asi nos ahorramos el if
             try {
-                //Utilizamos el findOneOrFail, para que cree una exepcion en caso de que no
-                // Encuentre
-                const CabceraRepo = AppDataSource.getRepository(Cabecera_Factura);
-                const DetalleRepo = AppDataSource.getRepository(Detalle_Factura);
-
-                FacturaCab = await CabceraRepo.findOneOrFail({ where: { Numero } })
-                FacturaDet = await DetalleRepo.findOneOrFail({ where: { Numero } })
+                Factura = await repoFac.findOneOrFail({ where: { Numero,Estado:true }, relations: { Fac_detalle: { productos: true } } })
             } catch (error) {
-                return resp.status(404).json({ mensaje: 'No se encontro la factura con ese ID' })
+                return resp.status(404).json({ mensaje: "No se encontro datos." })
             }
-
-
-            return resp.status(200).json({ FacturaCab, FacturaDet })
+            return resp.status(200).json(Factura);
         } catch (error) {
-            //En posible error, lo que hacemos es devolver el error
-            return resp.status(400).json({ mensaje: error.error });
+            return resp.status(404).json({ mensaje: "Error al cargar los datos" })
         }
     }
 
     static add = async (req: Request, resp: Response) => {
-
-
-        //Agregamos el trycath
         try {
             // Destructuring
             // De esa manera estamos sacando del body esos datos:
-            const { Numero, Fecha, Ruc_Cliente, CodigoProveedor, Cantidad, Codigo_Productos } = req.body;
-            //ValCodigo_Productoamos los datos de entrada
-            if (!Numero) {
-                return resp.status(404).json({ mensaje: 'Debe indicar el Numero' })
-            }
-            if (!Fecha) {
-                return resp.status(404).json({ mensaje: 'Debe indicar la fecha' })
-            }
-            if (!Ruc_Cliente) {
-                return resp.status(404).json({ mensaje: 'Debe indicar el Ruc_Cliente' })
-            }
-            if (!CodigoProveedor) {
-                return resp.status(404).json({ mensaje: 'Debe indicar el CodigoProveedor' })
-            }
-            if (Cantidad < 0) {
-                return resp.status(404).json({ mensaje: 'Debe indicar la Cantidad mayor que 0' })
-            }
-            if (!Codigo_Productos) {
-                return resp.status(404).json({ mensaje: 'Debe indicar el Codigo_Productos' })
-            }
+            const { Numero, Ruc_Cliente, Codigo_Vendedor, Cantidad, Codigo_Productos } = req.body;
 
             //Hacemos la instancia del repositorio
             const CabceraRepo = AppDataSource.getRepository(Cabecera_Factura);
             const DetalleRepo = AppDataSource.getRepository(Detalle_Factura);
-            let FacturaCab, FacturaDet;
+            let FacturaCab;
 
 
             FacturaCab = await CabceraRepo.findOne({ where: { Numero } })
-            FacturaDet = await DetalleRepo.findOne({ where: { Numero } })
 
             // Validamos si el producto esta en la base de datos
-            if (FacturaCab && FacturaDet) {
+            if (FacturaCab) {
                 return resp.status(404).json({ mensaje: 'La factura ya existe en la base de datos' })
             }
 
+            const Fecha = new Date();
             //Creamos el nuevo producto
             let CabFactura = new Cabecera_Factura();
             let DetFactura = new Detalle_Factura();
 
+            // Cabecera Factura
             CabFactura.Numero = Numero;
             CabFactura.Fecha = Fecha;
-            CabFactura.Ruc_Cliente = Ruc_Cliente;
-            CabFactura.CodigoProveedor = CodigoProveedor;
+            CabFactura.cliente = Ruc_Cliente;
+            CabFactura.vendedor = Codigo_Vendedor;
+            // Detalle Factura
             DetFactura.Numero = Numero;
+            DetFactura.Codigo_Productos = Codigo_Productos;
             DetFactura.Cantidad = Cantidad;
-            DetFactura.producto = Codigo_Productos;
+
             //Guardamos
             await CabceraRepo.save(CabFactura);
             await DetalleRepo.save(DetFactura);
@@ -131,80 +90,54 @@ class FacturaController {
 
     static update = async (req: Request, resp: Response) => {
 
-        let numero 
-        numero = parseInt(req.params["numero"]);
         try {
+            const { Ruc_Cliente, Codigo_Vendedor, Cantidad, Codigo_Productos } = req.body;
+            let Numero;
+            //Extraemos el id, en fomrato Int
+            Numero = parseInt(req.params["numero"]);
+            // Hacemos la instancia del repositorio
+            const CabceraRepo = AppDataSource.getRepository(Cabecera_Factura);
+            const DetalleRepo = AppDataSource.getRepository(Detalle_Factura);
 
-            const { Numero, Fecha, Ruc_Cliente, CodigoProveedor, Cantidad, Codigo_Productos } = req.body;
-            //ValCodigo_Productoamos los datos de entrada
-            if (!Numero) {
-                return resp.status(404).json({ mensaje: 'Debe indicar el Numero' })
-            }
-            if (!Fecha) {
-                return resp.status(404).json({ mensaje: 'Debe indicar la fecha' })
-            }
-            if (!Ruc_Cliente) {
-                return resp.status(404).json({ mensaje: 'Debe indicar el Ruc_Cliente' })
-            }
-            if (!CodigoProveedor) {
-                return resp.status(404).json({ mensaje: 'Debe indicar el CodigoProveedor' })
-            }
-            if (Cantidad < 0) {
-                return resp.status(404).json({ mensaje: 'Debe indicar la Cantidad mayor que 0' })
-            }
-            if (!Codigo_Productos) {
-                return resp.status(404).json({ mensaje: 'Debe indicar el Codigo_Productos' })
+            // Buscamos la factura por su número
+            const factura = await CabceraRepo.findOne({ where: { Numero, Estado:true} });
+
+            // Validamos si la factura existe en la base de datos
+            if (!factura) {
+                return resp.status(404).json({ mensaje: 'La factura no existe en la base de datos' });
             }
 
+            // Actualizamos los campos de la factura
+            factura.cliente = Ruc_Cliente;
+            factura.vendedor = Codigo_Vendedor;
 
-            // Validaciones de reglas de negocio
-            const CabeaRepo = AppDataSource.getRepository(Cabecera_Factura);
-            const DetaRepo = AppDataSource.getRepository(Detalle_Factura);
+            // Guardamos los cambios en la cabecera de la factura
+            await CabceraRepo.save(factura);
 
+            // Buscamos el detalle de la factura
+            const detalle = await DetalleRepo.findOne({ where: { Numero } });
 
-            //Buscamoms el producto en la base de datos, para ver si existe
-            //Creamos una variable diciendo que va a ser de tipo Producto.
-            let Cab: Cabecera_Factura;
-            let Det: Detalle_Factura;
-            try {
-                //ELegimos metodo findOneOrFail para buscar el id y si no lo encuentra.
-                //Va a producir un error y el catch lo va a capturar ese error
-                Cab = await CabeaRepo.findOneOrFail({ where: { Numero : numero } })
-                Det = await DetaRepo.findOneOrFail({ where: { Numero : numero} })
-
-            } catch (error) {
-                return resp.status(404).json({ mensaje: 'No existe el producto' })
+            // Validamos si el detalle existe en la base de datos
+            if (!detalle) {
+                return resp.status(404).json({ mensaje: 'El detalle de la factura no existe en la base de datos' });
             }
 
-            Cab.Numero = Numero;
-            Cab.Fecha = Fecha;
-            Cab.Ruc_Cliente = Ruc_Cliente;
-            Cab.CodigoProveedor = CodigoProveedor;
-            Det.Numero = Numero;
-            Det.Cantidad = Cantidad;
-            Det.producto = Codigo_Productos;
+            // Buscamos el detalle de la factura por su número de factura y lo actualizamos
+            await DetalleRepo.createQueryBuilder()
+                .update(Detalle_Factura)
+                .set({ Codigo_Productos, Cantidad })
+                .where("Numero = :Numero", { Numero })
+                .execute();
 
-
-
-            try {
-                await CabeaRepo.save(Cab)
-                await DetaRepo.save(Det)
-
-                return resp.status(200).json({ mensaje: 'Se guardo correctamente' })
-            } catch (error) {
-                return resp.status(400).json({ mensaje: error})
-            }
-
-
-
+            return resp.status(200).json({ mensaje: 'Factura actualizada correctamente' });
         } catch (error) {
-            return resp.status(404).json({ mensaje: error.error })
+            return resp.status(400).json({ mensaje: error });
         }
 
 
     }
 
-    static delete = async (req: Request, resp: Response) => {
+    static deleteDetalle = async (req: Request, resp: Response) => {
 
         let Numero;
         try {
@@ -214,9 +147,10 @@ class FacturaController {
             }
 
             const DetRepo = AppDataSource.getRepository(Detalle_Factura);
+            const CabRepo = AppDataSource.getRepository(Cabecera_Factura);
             let Fac;
             try {
-                Fac = await DetRepo.findOne({ where: { Numero } })
+                Fac = await DetRepo.findOneOrFail({ where: { Numero }})
             } catch (error) {
                 return resp.status(404).json({ mensaje: 'No se encuentra en la base de datos' })
             }
@@ -228,12 +162,39 @@ class FacturaController {
             }
 
         } catch (error) {
-            return resp.status(404).json({ mensaje: 'No se pudo eliminar' })
+            return resp.status(404).json({ mensaje: 'Ocurrio un problema al momento de eliminar' })
         }
 
+    }
 
+    static delete = async (req: Request, resp: Response) => {
 
+        try {
+            let Numero;
+            Numero = parseInt(req.params["numero"]);
+            if (!Numero) {
+                return resp.status(400).json({ mensaje: 'Debe indicar el numero' })
+            }
 
+            const CabRepo = AppDataSource.getRepository(Cabecera_Factura);
+            // Buscamos la factura por su número
+            const Cab = await CabRepo.findOne({ where: { Numero, Estado: true } });
+
+            // Validamos si la factura existe en la base de datos
+            if (!Cab) {
+                return resp.status(404).json({ mensaje: 'La factura no existe en la base de datos' });
+            }
+            try {
+                Cab.Estado = false;
+                await CabRepo.save(Cab);
+                return resp.status(200).json({ mensaje: 'Se elimino correctamente' })
+            } catch (error) {
+                return resp.status(400).json({ mensaje: 'No se pudo eliminar' })
+            }
+
+        } catch (error) {
+            return resp.status(404).json({ mensaje: 'Ocurrio un problema al momento de eliminar' })
+        }
     }
 }
 

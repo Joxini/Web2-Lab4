@@ -9,6 +9,6 @@ routes.get("/:numero", FacturaController.getById);
 //Para poder agregar un dato a la base de datos, desde el postman
 routes.post("", FacturaController.add);
 routes.patch("/:numero", FacturaController.update);
+routes.delete("/detalle/:numero", FacturaController.deleteDetalle);
 routes.delete("/:numero", FacturaController.delete);
-
 export default routes;

@@ -1,21 +1,26 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
 import { Producto } from "./Producto";
 import { Cabecera_Factura } from "./Cabecera_Factura";
+import { IsNotEmpty } from "class-validator";
 
 @Entity()
 export class Detalle_Factura {
-    //PrimaryColumn es para decirle que va a ser una llave primaria
-    //PrimaryGeneratedColumn es para decirle que va a ser una llave primaria y que va a ser autoicrementar 
+  @PrimaryGeneratedColumn()
+  Numero: number;
 
-    @PrimaryColumn()
-    @ManyToOne(() => Cabecera_Factura, (Cabecera_Factura) => Cabecera_Factura.Numero)
-    @JoinColumn({ name: 'Numero'})
-    Numero: number;
+  @PrimaryColumn()
+  @IsNotEmpty({ message: 'Debe indicar el Codigo Producto'})
+  Codigo_Productos: number;
 
-    @Column({ type: 'int', nullable: true })
-    Cantidad: number;
-    
-    @ManyToOne(() => Producto, (producto) => producto.Codigo_Producto)
-    @JoinColumn({ name: 'Codigo_Productos' })
-    producto: Producto;
+  @Column({ type: 'int', nullable: true })
+  @IsNotEmpty({ message: 'Debe indicar la cantidad'})
+  Cantidad: number;
+
+  @ManyToOne(() => Producto, (producto) => producto.facturas)
+  @JoinColumn({ name: 'Codigo_Productos' })
+  productos: Producto;
+
+  @ManyToOne(() => Cabecera_Factura, (factura) => factura.Fac_detalle)
+  @JoinColumn({ name: 'Numero' })
+  facturas: Cabecera_Factura;
 }

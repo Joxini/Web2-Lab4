@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
+import { Cabecera_Factura } from "./Cabecera_Factura";
 
 @Entity()
 export class Cliente{
@@ -14,4 +15,8 @@ export class Cliente{
     Direccion_Cliente:string;
     @Column({type: 'int',nullable:true})
     Telefono_Cliente:number;
+
+    // Factura
+    @OneToMany(() => Cabecera_Factura, (factura) => factura.cliente)
+    facturas:Cabecera_Factura[];
 }

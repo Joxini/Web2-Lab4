@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
 import { Proveedor } from "./Proveedor"
 import { Detalle_Factura } from "./Detalle_Factura";
 @Entity()
@@ -15,11 +15,17 @@ export class Producto {
     Stock_Maximo_Producto: number;
     @Column({type: 'int',nullable:true})
     Stock_Minimo_Producto: number;
-    @OneToOne(() => Proveedor)
-    @JoinColumn({ name: 'CodigoProveedor'})
-    CodigoProveedor: Proveedor;
-    @Column({type: 'char',nullable:true})
+    
+    // Proveedor:
+    @ManyToOne(() => Proveedor, (proveedor) => proveedor.productos)
+    @JoinColumn({ name: "Codigo_Proveedor" })
+    proveedor: Proveedor;
+
+    @Column({default:true})
     Estado: boolean
+
+    @OneToMany(() => Detalle_Factura, (factura) => factura.productos)
+    facturas:Detalle_Factura[];
 
 
 }

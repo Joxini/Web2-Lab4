@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
+import { Cabecera_Factura } from "./Cabecera_Factura";
 
 @Entity()
 export class Vendedor{
@@ -17,4 +18,9 @@ export class Vendedor{
     @Column({type: 'int',nullable:true})
     Celular_Vendedor:number;
 
+    // Factura
+    @OneToMany(() => Cabecera_Factura, (facturas) => facturas.vendedor)
+    facturas:Cabecera_Factura[];
+    
+    
 }
