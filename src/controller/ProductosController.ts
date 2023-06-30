@@ -118,7 +118,7 @@ class ProductosController {
             producto.Precio_Producto = Precio_Producto;
             producto.Stock_Maximo_Producto = Stock_Maximo_Producto;
             producto.Stock_Minimo_Producto = Stock_Minimo_Producto;
-            producto.CodigoProveedor = CodigoProveedor;
+            producto.proveedor = CodigoProveedor;
             producto.Estado = true;
 
             //Guardamos
