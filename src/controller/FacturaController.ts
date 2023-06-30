@@ -147,7 +147,6 @@ class FacturaController {
             }
 
             const DetRepo = AppDataSource.getRepository(Detalle_Factura);
-            const CabRepo = AppDataSource.getRepository(Cabecera_Factura);
             let Fac;
             try {
                 Fac = await DetRepo.findOneOrFail({ where: { Numero }})
